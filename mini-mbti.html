@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Mini MBTI</title>
+  <style>
+    :root {
+      --bg: #f6f7f5;
+      --surface: #ffffff;
+      --surface-2: #eef0ed;
+      --ink: #161916;
+      --muted: #656b65;
+      --line: #daddd8;
+      --grid: #c9cdc7;
+      --accent: #86bc25;
+      --accent-deep: #4e7600;
+      --accent-soft: #eef7dc;
+      --ghost: #bcc1bb;
+      --shadow: 0 18px 50px rgba(24, 31, 20, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101210;
+        --surface: #191c19;
+        --surface-2: #252925;
+        --ink: #f2f4f0;
+        --muted: #aeb4ac;
+        --line: #353a34;
+        --grid: #646a62;
+        --accent: #9bcf35;
+        --accent-deep: #b9e66a;
+        --accent-soft: #263315;
+        --ghost: #747a72;
+        --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100svh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "IBM Plex Sans KR", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; }
+    .app {
+      width: min(100%, 920px);
+      min-height: 100vh;
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+      display: grid;
+      align-items: center;
+    }
+    .quiz-view { width: min(100%, 620px); margin: auto; }
+    .app-title { margin: 0 2px 18px; font-size: clamp(28px, 5vw, 38px); line-height: 1; letter-spacing: -.045em; }
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 2px 14px; }
+    .counter { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .progress { flex: 1; max-width: 190px; height: 5px; background: var(--surface-2); overflow: hidden; }
+    .progress > span { display: block; height: 100%; width: 25%; background: var(--accent); transition: width .28s ease; }
+    .card {
+      min-height: 430px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: clamp(28px, 7vw, 54px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .question-no { margin: 0 0 28px; color: var(--accent-deep); font-weight: 700; font-size: 13px; letter-spacing: .08em; }
+    .question { margin: 0; max-width: 460px; font-size: clamp(29px, 6vw, 42px); line-height: 1.27; letter-spacing: -.035em; word-break: keep-all; }
+    .hint { margin: 18px 0 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+    .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 48px; }
+    .choice {
+      min-height: 72px;
+      padding: 17px 18px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color .18s ease, background .18s ease, color .18s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .choice:hover, .choice:focus-visible { border-color: var(--accent); background: var(--accent-soft); outline: none; }
+    .choice strong { font-size: 18px; }
+    .choice span { color: var(--muted); font-size: 14px; }
+    .choice:hover span, .choice:focus-visible span { color: var(--accent-deep); }
+
+    .result-view { width: 100%; margin: auto; }
+    .result-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 10px; }
+    .result-label { margin: 0 0 5px; color: var(--muted); font-size: 14px; }
+    .result-type { margin: 0; font-size: clamp(44px, 9vw, 76px); letter-spacing: -.055em; line-height: .98; }
+    .result-type span { color: var(--accent); }
+    .result-comment { margin: 0 0 22px; max-width: 680px; color: var(--ink); font-size: clamp(16px, 2.5vw, 19px); font-weight: 500; line-height: 1.55; letter-spacing: -.015em; word-break: keep-all; }
+    .restart {
+      border: 0;
+      border-bottom: 1px solid var(--muted);
+      padding: 7px 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .restart:hover, .restart:focus-visible { color: var(--ink); border-color: var(--ink); outline: none; }
+    .chart-wrap { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); padding: clamp(22px, 4vw, 36px); }
+    .chart-title { margin: 0 0 10px; color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+    .chart {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1.6 / 1;
+      min-height: 370px;
+    }
+    .axis-x, .axis-y { position: absolute; background: var(--grid); }
+    .axis-x { left: 8%; right: 8%; top: 50%; height: 1px; }
+    .axis-y { top: 8%; bottom: 8%; left: 50%; width: 1px; }
+    .axis-x::before, .axis-x::after, .axis-y::before, .axis-y::after { content: ""; position: absolute; width: 0; height: 0; }
+    .axis-x::before { left: -1px; top: -4px; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-right: 7px solid var(--grid); }
+    .axis-x::after { right: -1px; top: -4px; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 7px solid var(--grid); }
+    .axis-y::before { left: -4px; top: -1px; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 7px solid var(--grid); }
+    .axis-y::after { left: -4px; bottom: -1px; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 7px solid var(--grid); }
+    .axis-label { position: absolute; z-index: 2; color: var(--muted); font-size: clamp(11px, 1.8vw, 14px); white-space: nowrap; }
+    .label-top { top: 0; left: 50%; transform: translateX(-50%); }
+    .label-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .label-left { left: 0; top: 50%; transform: translateY(-50%); }
+    .label-right { right: 0; top: 50%; transform: translateY(-50%); }
+    .type {
+      position: absolute;
+      left: calc(50% + var(--x) * 42%);
+      top: calc(50% - var(--y) * 40%);
+      transform: translate(-50%, -50%);
+      color: var(--ghost);
+      font-size: clamp(11px, 2.15vw, 18px);
+      font-weight: 600;
+      letter-spacing: .01em;
+      line-height: 1;
+      transition: color .2s ease;
+    }
+    .type.active {
+      color: var(--accent-deep);
+      font-size: clamp(16px, 2.9vw, 25px);
+      font-weight: 700;
+      z-index: 3;
+    }
+    .type.active::after {
+      content: "";
+      position: absolute;
+      left: 50%; bottom: -8px;
+      width: 20px; height: 3px;
+      transform: translateX(-50%);
+      background: var(--accent);
+    }
+    .answer-strip { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .answer-chip { padding: 7px 10px; background: var(--surface-2); color: var(--muted); font-size: 12px; }
+    .answer-chip b { color: var(--accent-deep); }
+    .source-note { margin: 14px 2px 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .source-note a { color: inherit; text-underline-offset: 3px; }
+    .source-note a:hover, .source-note a:focus-visible { color: var(--ink); outline: none; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 560px) {
+      .app { align-items: stretch; }
+      .quiz-view { display: flex; flex-direction: column; justify-content: center; }
+      .card { min-height: min(520px, calc(100svh - 110px)); padding: 30px 24px; }
+      .answers { grid-template-columns: 1fr; margin-top: 34px; }
+      .choice { min-height: 64px; }
+      .result-view { align-self: center; }
+      .result-head { align-items: center; }
+      .chart-wrap { padding: 18px 10px; }
+      .chart { width: 100%; height: 470px; min-height: 0; aspect-ratio: auto; }
+      .axis-x { left: 5%; right: 5%; }
+      .type { left: calc(50% + var(--x) * 42%); font-size: 11px; }
+      .type.active { font-size: 16px; }
+      .axis-label { font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="quiz-view" id="quizView" aria-live="polite">
+      <h1 class="app-title">Mini MBTI</h1>
+      <div class="topline">
+        <div class="counter"><strong id="currentStep">1</strong> / 4</div>
+        <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+      </div>
+      <article class="card">
+        <div>
+          <p class="question-no" id="questionNo">QUESTION 01</p>
+          <h1 class="question" id="questionText">고등학교 때 유명했나요?</h1>
+          <p class="hint" id="questionHint">사람들과 어울릴 때의 내 모습에 더 가까운 쪽을 골라보세요.</p>
+        </div>
+        <div class="answers">
+          <button class="choice" type="button" data-answer="yes"><strong id="yesText">네</strong><span id="yesLetter">E</span></button>
+          <button class="choice" type="button" data-answer="no"><strong id="noText">아니요</strong><span id="noLetter">I</span></button>
+        </div>
+      </article>
+    </section>
+
+    <section class="result-view hidden" id="resultView" aria-live="polite">
+      <header class="result-head">
+        <div>
+          <p class="result-label" id="resultLabel">나의 Mini MBTI</p>
+          <h1 class="result-type"><span id="resultType">ENTJ</span></h1>
+        </div>
+        <button class="restart" id="restartBtn" type="button">다시 하기</button>
+      </header>
+      <p class="result-comment" id="resultComment"></p>
+      <div class="chart-wrap">
+        <h2 class="chart-title" id="chartTitle">작업능력</h2>
+        <div class="chart" id="chart" role="img" aria-label="16가지 MBTI 유형 좌표 그래프">
+          <div class="axis-x"></div><div class="axis-y"></div>
+          <span class="axis-label label-top" id="labelTop">열심히 일함</span>
+          <span class="axis-label label-bottom" id="labelBottom">아무것도 안 함</span>
+          <span class="axis-label label-left" id="labelLeft">어쨌든 실패함</span>
+          <span class="axis-label label-right" id="labelRight">어쨌든 성공함</span>
+          <span class="type" data-type="ISFJ" style="--x:-.48;--y:.72">ISFJ</span>
+          <span class="type" data-type="ISTJ" style="--x:.25;--y:.88">ISTJ</span>
+          <span class="type" data-type="ENTJ" style="--x:.86;--y:.82">ENTJ</span>
+          <span class="type" data-type="ESTJ" style="--x:.73;--y:.59">ESTJ</span>
+          <span class="type" data-type="ESFJ" style="--x:-.82;--y:.48">ESFJ</span>
+          <span class="type" data-type="INFJ" style="--x:.04;--y:.62">INFJ</span>
+          <span class="type" data-type="ENFJ" style="--x:-.28;--y:.27">ENFJ</span>
+          <span class="type" data-type="INTJ" style="--x:.62;--y:.34">INTJ</span>
+          <span class="type" data-type="ISTP" style="--x:.13;--y:.05">ISTP</span>
+          <span class="type" data-type="ISFP" style="--x:-.70;--y:-.17">ISFP</span>
+          <span class="type" data-type="ENFP" style="--x:-.30;--y:-.34">ENFP</span>
+          <span class="type" data-type="INFP" style="--x:.08;--y:-.50">INFP</span>
+          <span class="type" data-type="ESFP" style="--x:-.61;--y:-.75">ESFP</span>
+          <span class="type" data-type="ESTP" style="--x:.26;--y:-.72">ESTP</span>
+          <span class="type" data-type="ENTP" style="--x:.84;--y:-.76">ENTP</span>
+          <span class="type" data-type="INTP" style="--x:.83;--y:-.94">INTP</span>
+        </div>
+        <div class="answer-strip" id="answerStrip" aria-label="선택 결과"></div>
+      </div>
+      <p class="source-note" id="sourceNote">그래프 참고 · <a href="https://www.reddit.com/r/mbti/comments/gmoski/mbti_working_skills/?tl=ko" target="_blank" rel="noopener noreferrer">Reddit · MBTI Working Skills</a><br>그래프의 원본 출처를 아시면 제보해 주세요.</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var locale = (navigator.language || "en").toLowerCase().indexOf("ko") === 0 ? "ko" : "en";
+      var copy = {
+        ko: {
+          yes: "네",
+          no: "아니요",
+          resultLabel: "나의 Mini MBTI",
+          restart: "다시 하기",
+          chartTitle: "작업능력",
+          labelTop: "열심히 일함",
+          labelBottom: "아무것도 안 함",
+          labelLeft: "어쨌든 실패함",
+          labelRight: "어쨌든 성공함",
+          chartAria: "16가지 MBTI 유형 좌표 그래프",
+          answersAria: "선택 결과",
+          chipPrefix: "번",
+          source: "그래프 참고 · <a href=\"https://www.reddit.com/r/mbti/comments/gmoski/mbti_working_skills/?tl=ko\" target=\"_blank\" rel=\"noopener noreferrer\">Reddit · MBTI Working Skills</a><br>그래프의 원본 출처를 아시면 제보해 주세요."
+        },
+        en: {
+          yes: "Yes",
+          no: "No",
+          resultLabel: "My Mini MBTI",
+          restart: "Try again",
+          chartTitle: "Work Ability",
+          labelTop: "Works hard",
+          labelBottom: "Does nothing",
+          labelLeft: "Fails anyway",
+          labelRight: "Succeeds anyway",
+          chartAria: "Coordinate chart of 16 MBTI types",
+          answersAria: "Your answers",
+          chipPrefix: "Q",
+          source: "Graph reference · <a href=\"https://www.reddit.com/r/mbti/comments/gmoski/mbti_working_skills/?tl=ko\" target=\"_blank\" rel=\"noopener noreferrer\">Reddit · MBTI Working Skills</a><br>Know the original source of this graph? Please let us know."
+        }
+      };
+      var questionPools = {
+        ko: [
+          {
+            texts: ["고등학교 때 유명했나요?", "인싸인가요?", "약속이 많나요?", "핸드폰이 울리면 기대되나요?", "단톡방이 10개 이상인가요?", "약속이 취소되면 아쉽나요?"],
+            hint: "사람들과 어울릴 때의 내 모습에 더 가까운 쪽을 골라보세요.", yes: "E", no: "I"
+          },
+          {
+            texts: ["스포츠(운동)를 하나요?", "운동을 잘하나요?", "디테일이 중요한가요?", "현실적인가요?", "매뉴얼을 읽나요?"],
+            hint: "평소 경험하고 판단하는 방식을 떠올려보세요.", yes: "S", no: "N"
+          },
+          {
+            texts: ["수학을 잘하나요?", "질문에 대한 답을 제시하고 싶나요?", "질문에 대한 해결 방법을 찾아주고 싶나요?", "T인가요?"],
+            hint: "문제를 판단하거나 해결할 때의 모습을 떠올려보세요.", yes: "T", no: "F"
+          },
+          {
+            texts: ["지금 방이 깨끗한가요?", "여행 계획이 틀어지면 부글부글 끓나요?", "여행 계획을 30분 단위까지 세우나요?", "빨래 건조 후 바로 개나요?", "밥 먹고 설거지를 바로 하나요?"],
+            hint: "일상의 정리와 계획 습관을 기준으로 답해보세요.", yes: "J", no: "P"
+          }
+        ],
+        en: [
+          {
+            texts: ["Were you popular in high school?", "Are you an insider?", "Do you have a lot of plans?", "Do you get excited when your phone rings?", "Are you in 10+ group chats?", "Are you disappointed when plans get cancelled?"],
+            hint: "Pick the answer that feels more like you around other people.", yes: "E", no: "I"
+          },
+          {
+            texts: ["Do you play sports?", "Are you good at sports?", "Do details matter to you?", "Are you realistic?", "Do you read manuals?"],
+            hint: "Think about how you usually take in and judge what is happening.", yes: "S", no: "N"
+          },
+          {
+            texts: ["Are you good at math?", "Do you want to give answers to questions?", "Do you want to find how-to answers for questions?", "Are you a T?"],
+            hint: "Think about how you judge or solve a problem.", yes: "T", no: "F"
+          },
+          {
+            texts: ["Is your room clean right now?", "Do you boil with anger when travel plans fall through?", "Do you plan trips down to 30-minute blocks?", "Do you fold laundry right after it's dry?", "Do you wash dishes right after eating?"],
+            hint: "Answer based on your everyday planning and organizing habits.", yes: "J", no: "P"
+          }
+        ]
+      };
+      var typeComments = {
+        ko: {
+          ISFJ: "부지런히 챙기는 편이지만, 이 그래프에서는 노력만큼 결과가 따라오지 않는 위치예요.",
+          ISTJ: "가장 부지런한 축에 가깝고, 차근차근 쌓은 만큼 성과도 따라오는 타입이에요.",
+          ENTJ: "많이 움직이고 결과도 챙기는, 그래프 오른쪽 위의 강한 추진형이에요.",
+          ESTJ: "계획대로 부지런히 밀어붙여 안정적으로 성과를 만드는 타입이에요.",
+          ESFJ: "사람과 일을 열심히 챙기지만, 이 그래프에서는 결과가 조금 비껴가는 위치예요.",
+          INFJ: "묵묵히 공을 들이며, 성공과 실패의 경계에서 의미를 찾는 타입이에요.",
+          ENFJ: "주변을 이끌며 꾸준히 움직이지만, 성과보다 과정에 조금 더 가까운 타입이에요.",
+          INTJ: "필요한 만큼 집중해 결과 쪽으로 정확히 향하는 전략형이에요.",
+          ISTP: "과하게 애쓰지 않아도 중심을 잡고, 성공과 실패 사이를 담담히 가는 타입이에요.",
+          ISFP: "힘을 빼고 자기 속도로 움직이며, 결과보다 경험에 가까운 타입이에요.",
+          ENFP: "계획보다 가능성을 좇는 편이라, 그래프에서는 자유로운 왼쪽 아래에 있어요.",
+          INFP: "많이 움직이기보다 생각을 깊게 하며, 결과의 경계에 머무는 타입이에요.",
+          ESFP: "성과 계산은 잠시 미뤄두고, 지금의 즐거움에 가장 가까운 타입이에요.",
+          ESTP: "적게 준비해도 현장에서 결과를 만들어내는 실전형이에요.",
+          ENTP: "열심히 하기보다 영리한 한 수로 성공 쪽에 닿는 아이디어형이에요.",
+          INTP: "가장 힘을 덜 들이는 축에서도 답을 찾아내는, 그래프 오른쪽 아래의 효율형이에요."
+        },
+        en: {
+          ISFJ: "Works overtime so the outcome can still say, ‘No thanks.’",
+          ISTJ: "Spreadsheets first, success shortly after—exactly as scheduled.",
+          ENTJ: "Works hard, wins harder, and has already scheduled the victory lap.",
+          ESTJ: "Turns the plan into a result, then asks why everyone else is behind.",
+          ESFJ: "Puts in 110%, gets 78% back, and still remembers everyone's birthday.",
+          INFJ: "Works hard for a result only the vision board can fully explain.",
+          ENFJ: "Motivates the whole team to victory, then somehow misses the group photo.",
+          INTJ: "Uses fewer moves, reaches the right square, and pretends it was obvious.",
+          ISTP: "Barely looks busy, somehow keeps the whole thing from catching fire.",
+          ISFP: "Vibes through the task; the result may or may not RSVP.",
+          ENFP: "Starts with a brilliant idea, ends with twelve tabs and a plot twist.",
+          INFP: "Doesn't rush; the inner masterpiece is still buffering.",
+          ESFP: "Did not do the homework, but absolutely improved the group chat.",
+          ESTP: "Skips the prep, nails the live demo, leaves before the debrief.",
+          ENTP: "Argues the shortcut into existence—and annoyingly, it works.",
+          INTP: "Does almost nothing visible, then drops the answer from another dimension."
+        }
+      };
+      var ui = copy[locale];
+      var activePools = questionPools[locale];
+      var questions = [];
+      var previousQuestionTexts = [];
+      var step = 0;
+      var choices = [];
+      var quizView = document.getElementById("quizView");
+      var resultView = document.getElementById("resultView");
+      var currentStep = document.getElementById("currentStep");
+      var progressBar = document.getElementById("progressBar");
+      var questionNo = document.getElementById("questionNo");
+      var questionText = document.getElementById("questionText");
+      var questionHint = document.getElementById("questionHint");
+      var yesLetter = document.getElementById("yesLetter");
+      var noLetter = document.getElementById("noLetter");
+
+      function applyLocale() {
+        document.documentElement.lang = locale;
+        document.getElementById("yesText").textContent = ui.yes;
+        document.getElementById("noText").textContent = ui.no;
+        document.getElementById("resultLabel").textContent = ui.resultLabel;
+        document.getElementById("restartBtn").textContent = ui.restart;
+        document.getElementById("chartTitle").textContent = ui.chartTitle;
+        document.getElementById("labelTop").textContent = ui.labelTop;
+        document.getElementById("labelBottom").textContent = ui.labelBottom;
+        document.getElementById("labelLeft").textContent = ui.labelLeft;
+        document.getElementById("labelRight").textContent = ui.labelRight;
+        document.getElementById("chart").setAttribute("aria-label", ui.chartAria);
+        document.getElementById("answerStrip").setAttribute("aria-label", ui.answersAria);
+        document.getElementById("sourceNote").innerHTML = ui.source;
+      }
+
+      function drawQuestions() {
+        questions = activePools.map(function (pool, index) {
+          var candidates = pool.texts.filter(function (text) {
+            return text !== previousQuestionTexts[index];
+          });
+          var text = candidates[Math.floor(Math.random() * candidates.length)];
+          return { text: text, hint: pool.hint, yes: pool.yes, no: pool.no };
+        });
+        previousQuestionTexts = questions.map(function (question) { return question.text; });
+      }
+
+      function renderQuestion() {
+        var q = questions[step];
+        currentStep.textContent = String(step + 1);
+        progressBar.style.width = ((step + 1) / questions.length * 100) + "%";
+        questionNo.textContent = "QUESTION " + String(step + 1).padStart(2, "0");
+        questionText.textContent = q.text;
+        questionHint.textContent = q.hint;
+        yesLetter.textContent = locale === "ko" ? q.yes : "(" + q.yes + ")";
+        noLetter.textContent = locale === "ko" ? q.no : "(" + q.no + ")";
+        questionText.focus && questionText.focus();
+      }
+
+      function showResult() {
+        var type = choices.join("");
+        document.getElementById("resultType").textContent = type;
+        document.getElementById("resultComment").textContent = typeComments[locale][type];
+        document.querySelectorAll(".type").forEach(function (node) {
+          node.classList.toggle("active", node.getAttribute("data-type") === type);
+        });
+        var strip = document.getElementById("answerStrip");
+        strip.innerHTML = "";
+        choices.forEach(function (letter, index) {
+          var chip = document.createElement("span");
+          chip.className = "answer-chip";
+          chip.innerHTML = locale === "ko" ? (index + 1) + ui.chipPrefix + " · <b>" + letter + "</b>" : ui.chipPrefix + (index + 1) + " · <b>" + letter + "</b>";
+          strip.appendChild(chip);
+        });
+        quizView.classList.add("hidden");
+        resultView.classList.remove("hidden");
+        resultView.scrollIntoView({ block: "start" });
+      }
+
+      document.querySelectorAll(".choice").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var q = questions[step];
+          choices.push(button.getAttribute("data-answer") === "yes" ? q.yes : q.no);
+          step += 1;
+          if (step < questions.length) renderQuestion();
+          else showResult();
+        });
+      });
+
+      document.getElementById("restartBtn").addEventListener("click", function () {
+        step = 0;
+        choices = [];
+        drawQuestions();
+        resultView.classList.add("hidden");
+        quizView.classList.remove("hidden");
+        renderQuestion();
+      });
+
+      applyLocale();
+      drawQuestions();
+      renderQuestion();
+    })();
+  </script>
+</body>
+</html>
